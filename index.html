@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7-Day Transportation Planner</title>
+<style>
+:root{--gold:#b88927;--gold-dark:#8f6a17;--gold-light:#f8edcf;--peach:#f5c5ad;--peach-light:#fff2eb;--ink:#45352d;--muted:#79675d;--line:#ead6c8;--white:#fffdfb}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:linear-gradient(135deg,#fff8f0,#fbe5d8);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+main{max-width:1100px;margin:auto}
+header{padding:26px;border-radius:20px;background:linear-gradient(120deg,#b88927,#e6b77b 55%,#efb49c);color:#fffdf8;box-shadow:0 8px 24px #9b6c3220}
+h1{margin:0 0 8px;font-size:clamp(1.6rem,4vw,2.25rem)}
+header p{margin:0;line-height:1.55}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:17px;padding:18px;margin-top:17px;box-shadow:0 5px 18px #80502a0a}
+h2{font-size:1.12rem;margin:0 0 13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+label{display:block;font-size:.9rem;font-weight:650}
+input,select{width:100%;margin-top:6px;padding:11px;border:1px solid #d9b9a7;border-radius:9px;background:#fff;color:var(--ink);font:inherit}
+input:focus,select:focus,button:focus-visible{outline:3px solid #f4d4a0;border-color:var(--gold)}
+.days{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:14px}
+.day{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}
+.day-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--gold-light);font-weight:700}
+.day-head .dt{color:var(--gold-dark);font-size:1.05rem}
+.trip{padding:10px 14px;border-top:1px solid var(--line)}
+.trip:first-of-type{border-top:0}
+.trip-name{font-size:.85rem;font-weight:700;color:var(--muted);margin-bottom:6px}
+.trip-fields{display:grid;grid-template-columns:1.2fr 1fr;gap:8px}
+.trip-fields input,.trip-fields select{margin:0;padding:9px}
+.buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+button{border:0;border-radius:10px;padding:12px 16px;cursor:pointer;font:inherit;font-weight:700}
+.primary{background:var(--gold);color:#fff}
+.primary:hover{background:var(--gold-dark)}
+.secondary{background:var(--peach);color:#4b3328}
+.status{font-weight:650;line-height:1.5;margin:14px 0 0}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.metric{padding:14px;border-radius:12px;background:var(--peach-light);border:1px solid #f2d4c5}
+.metric span{display:block;color:var(--muted);font-size:.83rem;margin-bottom:5px}
+.metric strong{font-size:1.3rem}
+.metric.big{background:var(--gold-light);border-color:#e6cf93}
+.note{font-size:.89rem;line-height:1.55;color:var(--muted)}
+.cal-title{margin:18px 0 8px;font-size:1.05rem;color:var(--gold-dark)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .dow{background:var(--gold);color:#fff;text-align:center;font-weight:700;font-size:.8rem;padding:6px 2px;border-radius:6px}
+.cal .cell{min-height:78px;border:1px solid var(--line);border-radius:8px;padding:5px;background:#fff;font-size:.8rem;overflow:hidden}
+.cal .cell.out{background:#faf4ef;color:#c9b8ac}
+.cal .cell.active{background:var(--peach-light);border-color:var(--peach)}
+.cal .n{font-weight:700;color:var(--muted)}
+.cal .cost{display:block;margin-top:6px;font-weight:800;color:var(--gold-dark);font-size:.95rem}
+.cal .modes{display:block;font-size:.68rem;color:var(--muted);line-height:1.3;margin-top:2px}
+.print-head{display:none}
+@media(max-width:560px){body{padding:10px}.panel,header{padding:15px;border-radius:13px}.cal .cell{min-height:60px;padding:3px}.cal .cost{font-size:.78rem}.cal .modes{display:none}}
+@media print{
+body{background:#fff;padding:0}
+header,.panel{box-shadow:none}
+.buttons{display:none}
+body.print-cal header,body.print-cal .plan-only{display:none}
+body.print-cal .cal-panel{border:0;margin:0;padding:0}
+body.print-cal .print-head{display:block;margin:0 0 10px}
+body.print-cal .print-head h1{font-size:1.4rem}
+.cal .cell,.cal .dow,.cal-title{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cal .cell{min-height:90px}
+.cal-month{break-inside:avoid}
+}
+</style></head>
+<body><main>
+<header><h1>7-Day Transportation Planner</h1><p>Pick how you're getting to and from each job, enter what each trip costs, and the totals do the math for you.</p></header>
+
+<section class="panel plan-only"><h2>Start date, cash & paydays</h2><div class="grid">
+<label>First day (Thursday)<input id="start" type="date"></label>
+<label>Cash available now ($)<input id="cash" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Enter amount"></label>
+<label>Job 1 paycheck ($)<input id="pay1" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Enter amount"></label>
+<label>Job 2 first paycheck ($)<input id="pay2" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Enter amount"></label>
+</div><p class="note">This planner runs in your browser and your entries are not sent anywhere. They are saved on this device so they're here when you come back.</p></section>
+
+<section class="panel plan-only"><h2>Daily trips</h2>
+<div class="days" id="days"></div>
+<div class="buttons"><button class="primary" id="calc">Calculate Totals</button><button class="secondary" id="ics">Add to Calendar</button><button class="secondary" id="clear">Clear all</button></div>
+<p id="status" class="status" aria-live="polite"></p></section>
+
+<section class="panel plan-only"><h2>Plan summary</h2><div class="summary">
+<div class="metric big"><span>Seven-day transportation total</span><strong id="weekTotal">$0.00</strong></div>
+<div class="metric"><span>Cash after transportation</span><strong id="left">Enter cash</strong></div>
+<div class="metric"><span>Cash + Job 1 pay − costs</span><strong id="one">Enter amounts</strong></div>
+<div class="metric"><span>Cash + both pays − costs</span><strong id="both">Enter amounts</strong></div>
+</div>
+<h2 style="margin-top:18px">Cost by ride type</h2><div class="summary" id="byMode"></div>
+<p class="note">Trips with no cost entered count as $0. Food, bills, tickets, and other expenses are not included.</p></section>
+
+<section class="panel cal-panel"><div class="print-head"><h1>Transportation Calendar</h1></div>
+<h2>Monthly calendar</h2><div id="cal"></div>
+<div class="buttons"><button class="secondary" id="printCal">Print Calendar</button></div></section>
+</main>
+<script>
+const MODES=['Reva','Train','Uber','Mom Car'];
+const TRIPS=[['to1','To Job 1'],['from1','From Job 1'],['to2','To Job 2'],['from2','From Job 2']];
+const KEY='transportPlanner7';
+const $=id=>document.getElementById(id);
+const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(n);
+const num=id=>{const v=$(id).value;return v===''?null:Number(v)};
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=s=>{const[p,q,r]=s.split('-').map(Number);return new Date(p,q-1,r)};
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const dayName=d=>d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+let days=[];
+
+function nextThursday(){const d=new Date();d.setHours(0,0,0,0);while(d.getDay()!==4)d=addDays(d,1);return d}
+
+function build(){
+  const start=parse($('start').value);
+  days=[0,1,2,3,4,5,6].map(i=>addDays(start,i));
+  const keep={};document.querySelectorAll('#days [data-k]').forEach(el=>keep[el.dataset.k]=el.value);
+  $('days').innerHTML=days.map((d,i)=>'<div class="day"><div class="day-head"><span>'+dayName(d)+'</span><span class="dt" id="dt'+i+'">$0.00</span></div>'+
+    TRIPS.map(([k,l])=>{const id=i+'-'+k;return '<div class="trip"><div class="trip-name">'+l+'</div><div class="trip-fields">'+
+      '<select data-k="m'+id+'" aria-label="'+dayName(d)+' '+l+' transportation"><option value="">Select ride</option>'+MODES.map(m=>'<option>'+m+'</option>').join('')+'</select>'+
+      '<input type="number" min="0" step="0.01" inputmode="decimal" placeholder="$0.00" data-k="c'+id+'" aria-label="'+dayName(d)+' '+l+' cost"></div></div>'}).join('')+'</div>').join('');
+  document.querySelectorAll('#days [data-k]').forEach(el=>{if(keep[el.dataset.k]!==undefined)el.value=keep[el.dataset.k];el.addEventListener('input',calc)});
+}
+
+function dayData(i){
+  const trips=TRIPS.map(([k,l])=>{const id=i+'-'+k;const m=document.querySelector('[data-k="m'+id+'"]').value;const c=Math.max(0,Number(document.querySelector('[data-k="c'+id+'"]').value)||0);return{label:l,mode:m,cost:c}});
+  return{trips,total:trips.reduce((s,t)=>s+t.cost,0)};
+}
+
+function calc(){
+  let week=0,filled=0;const by={};MODES.forEach(m=>by[m]=0);by['No ride picked']=0;
+  const data=days.map((_,i)=>dayData(i));
+  data.forEach((d,i)=>{week+=d.total;$('dt'+i).textContent=money(d.total);d.trips.forEach(t=>{by[t.mode||'No ride picked']+=t.cost;if(t.cost>0)filled++})});
+  $('weekTotal').textContent=money(week);
+  const cash=num('cash'),p1=num('pay1'),p2=num('pay2');
+  $('left').textContent=cash===null?'Enter cash':money(cash-week);
+  $('one').textContent=cash===null||p1===null?'Enter amounts':money(cash+p1-week);
+  $('both').textContent=cash===null||p1===null||p2===null?'Enter amounts':money(cash+p1+p2-week);
+  $('byMode').innerHTML=Object.entries(by).filter(([m,v])=>m!=='No ride picked'||v>0).map(([m,v])=>'<div class="metric"><span>'+m+'</span><strong>'+money(v)+'</strong></div>').join('');
+  $('status').textContent='Seven-day total: '+money(week)+'. '+(28-filled)+' of 28 trips have no cost yet (counted as $0).';
+  renderCal(data);save();return data;
+}
+
+function renderCal(data){
+  const byDate={};days.forEach((d,i)=>byDate[ymd(d)]=data[i]);
+  const months=[];days.forEach(d=>{const k=d.getFullYear()*12+d.getMonth();if(!months.includes(k))months.push(k)});
+  $('cal').innerHTML=months.map(k=>{
+    const y=Math.floor(k/12),m=k%12,first=new Date(y,m,1),last=new Date(y,m+1,0).getDate();
+    let h='<div class="cal-month"><h3 class="cal-title">'+first.toLocaleDateString('en-US',{month:'long',year:'numeric'})+'</h3><div class="cal">'+
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>'<div class="dow">'+x+'</div>').join('');
+    for(let b=0;b<first.getDay();b++)h+='<div class="cell out"></div>';
+    for(let n=1;n<=last;n++){
+      const info=byDate[ymd(new Date(y,m,n))];
+      if(info){const modes=[...new Set(info.trips.filter(t=>t.cost>0&&t.mode).map(t=>t.mode))].join(', ');
+        h+='<div class="cell active"><span class="n">'+n+'</span><span class="cost">'+money(info.total)+'</span><span class="modes">'+modes+'</span></div>'}
+      else h+='<div class="cell out"><span class="n">'+n+'</span></div>';
+    }
+    return h+'</div></div>';
+  }).join('');
+}
+
+function icsEscape(s){return s.replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n')}
+function downloadIcs(){
+  const data=calc();const stamp=new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  let out=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Transportation Planner//EN','CALSCALE:GREGORIAN'];
+  days.forEach((d,i)=>{
+    const ev=data[i];const desc=ev.trips.map(t=>t.label+': '+(t.mode||'no ride picked')+' - '+money(t.cost)).join('\n')+'\nDay total: '+money(ev.total);
+    out.push('BEGIN:VEVENT','UID:transport-'+ymd(d)+'-'+Date.now()+'@planner','DTSTAMP:'+stamp,
+      'DTSTART;VALUE=DATE:'+ymd(d).replace(/-/g,''),'DTEND;VALUE=DATE:'+ymd(addDays(d,1)).replace(/-/g,''),
+      'SUMMARY:'+icsEscape('Transportation: '+money(ev.total)),'DESCRIPTION:'+icsEscape(desc),'END:VEVENT');
+  });
+  out.push('END:VCALENDAR');
+  const blob=new Blob([out.join('\r\n')],{type:'text/calendar'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='transportation-plan.ics';document.body.appendChild(a);a.click();a.remove();
+  $('status').textContent='Calendar file downloaded. Open it to add all 7 days to your calendar app.';
+}
+
+function save(){try{const s={start:$('start').value,cash:$('cash').value,pay1:$('pay1').value,pay2:$('pay2').value,f:{}};document.querySelectorAll('#days [data-k]').forEach(el=>s.f[el.dataset.k]=el.value);localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s){$('start').value=s.start;$('cash').value=s.cash;$('pay1').value=s.pay1;$('pay2').value=s.pay2;return s.f||{}}}catch(e){}return {}}
+
+const saved=load();
+if(!$('start').value)$('start').value=ymd(nextThursday());
+build();
+document.querySelectorAll('#days [data-k]').forEach(el=>{if(saved[el.dataset.k]!==undefined)el.value=saved[el.dataset.k]});
+$('start').addEventListener('change',()=>{if(!$('start').value)$('start').value=ymd(nextThursday());build();calc()});
+['cash','pay1','pay2'].forEach(id=>$(id).addEventListener('input',calc));
+$('calc').addEventListener('click',calc);
+$('ics').addEventListener('click',downloadIcs);
+$('clear').addEventListener('click',()=>{document.querySelectorAll('input:not(#start),select').forEach(el=>el.value='');calc();$('status').textContent='All fields cleared.'});
+$('printCal').addEventListener('click',()=>{calc();document.body.classList.add('print-cal');window.print();});
+window.addEventListener('afterprint',()=>document.body.classList.remove('print-cal'));
+calc();
+</script></body></html>
